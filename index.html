@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📘 CSV → Clean Excel Converter</title>
+  <script src="xlsx.full.min.js"></script>
+  <script src="papaparse.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #dropZone {
+      transition: all 0.2s ease-in-out;
+    }
+    #dropZone.dragover {
+      background-color: #e0f2fe;
+      border-color: #0284c7;
+    }
+  </style>
+</head>
+<body class="bg-blue-50 flex justify-center items-center min-h-screen">
+
+  <div class="bg-white p-10 rounded-xl shadow-xl w-full max-w-md text-center">
+    <h1 class="text-2xl font-bold text-blue-600 mb-4">📘 CSV → Clean Excel Converter</h1>
+    <p class="text-gray-600 mb-6">Upload your CSV file to get a cleaned Excel file instantly!</p>
+
+    <div id="dropZone" class="border-2 border-dashed border-blue-300 rounded-lg p-6 cursor-pointer mb-4">
+      <p class="text-gray-500">Drag & drop your CSV here<br>or click to select</p>
+      <input type="file" id="csvFile" accept=".csv" class="hidden">
+    </div>
+
+    <button id="convertBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md">🧹 Clean & Convert</button>
+  </div>
+
+  <script>
+    const COLUMNS_TO_KEEP = [
+      "Name",
+      "Email",
+      "External Id",
+      "Course",
+      "Estimated Learning Hours",
+      "Completed",
+      "Course Grade"
+    ];
+
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("csvFile");
+    const convertBtn = document.getElementById("convertBtn");
+    let selectedFile = null;
+
+    // Click on dropZone opens file selector
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    // Handle file selection
+    fileInput.addEventListener("change", e => {
+      selectedFile = e.target.files[0];
+      dropZone.innerHTML = `<p class="text-gray-700 font-medium">${selectedFile.name}</p>`;
+    });
+
+    // Drag & drop
+    dropZone.addEventListener("dragover", e => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+    dropZone.addEventListener("dragleave", e => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+    });
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      selectedFile = e.dataTransfer.files[0];
+      fileInput.files = e.dataTransfer.files;
+      dropZone.innerHTML = `<p class="text-gray-700 font-medium">${selectedFile.name}</p>`;
+    });
+
+    // Convert & Download
+    convertBtn.addEventListener("click", () => {
+      if (!selectedFile) return alert("Please upload a CSV file first!");
+
+      Papa.parse(selectedFile, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          const data = results.data;
+
+          // Filter only required columns
+          const filtered = data.map(row => {
+            const newRow = {};
+            COLUMNS_TO_KEEP.forEach(col => {
+              if (row[col] !== undefined) newRow[col] = row[col];
+            });
+            return newRow;
+          });
+
+          // Convert to Excel sheet
+          const worksheet = XLSX.utils.json_to_sheet(filtered, {header: COLUMNS_TO_KEEP});
+
+          // Styling cells
+          const range = XLSX.utils.decode_range(worksheet['!ref']);
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+              const cell_address = {c:C, r:R};
+              const cell_ref = XLSX.utils.encode_cell(cell_address);
+              if(!worksheet[cell_ref]) continue;
+
+              if(R === 0) { // header bold & center
+                worksheet[cell_ref].s = {
+                  font: { bold: true },
+                  alignment: { horizontal: "center", vertical: "center" }
+                };
+              } else { // center rows
+                worksheet[cell_ref].s = {
+                  alignment: { horizontal: "center", vertical: "center" }
+                };
+              }
+            }
+          }
+
+          // Auto column width
+          const cols = COLUMNS_TO_KEEP.map(key => ({
+            wch: Math.max(
+              key.length + 2,
+              ...filtered.map(r => (r[key] ? r[key].toString().length : 0) + 2)
+            )
+          }));
+          worksheet['!cols'] = cols;
+
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Cleaned Data");
+
+          // Download
+          const filename = selectedFile.name.replace(/\.csv$/i, '') + '.xlsx';
+          XLSX.writeFile(workbook, filename, {bookSST:true});
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
