@@ -2,138 +2,566 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>📘 CSV → Clean Excel Converter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚀 CSV → Clean Excel Converter</title>
   <script src="xlsx.full.min.js"></script>
   <script src="papaparse.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    #dropZone {
-      transition: all 0.2s ease-in-out;
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #6366f1;
+      --primary-dark: #4338ca;
+      --accent: #10b981;
+      --accent-light: #34d399;
+      --gray-light: #f8fafc;
+      --gray: #64748b;
+      --gray-dark: #334155;
     }
-    #dropZone.dragover {
-      background-color: #e0f2fe;
-      border-color: #0284c7;
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      min-height: 100vh;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    #dropZone {
+      transition: all 0.3s ease;
+      border: 2px dashed #cbd5e1;
+      background: #f8fafc;
+    }
+    
+    #dropZone:hover, #dropZone.dragover {
+      background-color: #f0f9ff;
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(to right, var(--primary), var(--primary-light));
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      background: linear-gradient(to right, var(--primary-dark), var(--primary));
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+    
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      position: relative;
+      padding-left: 35px;
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .checkbox-container input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      height: 0;
+      width: 0;
+    }
+    
+    .checkmark {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 22px;
+      width: 22px;
+      background-color: #e2e8f0;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+    
+    .checkbox-container:hover input ~ .checkmark {
+      background-color: #cbd5e1;
+    }
+    
+    .checkbox-container input:checked ~ .checkmark {
+      background-color: var(--accent);
+    }
+    
+    .checkmark:after {
+      content: "";
+      position: absolute;
+      display: none;
+    }
+    
+    .checkbox-container input:checked ~ .checkmark:after {
+      display: block;
+    }
+    
+    .checkbox-container .checkmark:after {
+      left: 8px;
+      top: 4px;
+      width: 5px;
+      height: 10px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+    
+    .progress-bar {
+      height: 6px;
+      background-color: #e2e8f0;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(to right, var(--accent-light), var(--accent));
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+    
+    .column-item {
+      transition: all 0.2s ease;
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+    
+    .column-item:hover {
+      background-color: #f1f5f9;
+    }
+    
+    .stats-card {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+    
+    .success-animation {
+      animation: success 0.6s ease;
+    }
+    
+    @keyframes success {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.1);
+      }
+      100% {
+        transform: scale(1);
+      }
     }
   </style>
 </head>
-<body class="bg-blue-50 flex justify-center items-center min-h-screen">
-
-  <div class="bg-white p-10 rounded-xl shadow-xl w-full max-w-md text-center">
-    <h1 class="text-2xl font-bold text-blue-600 mb-4">📘 CSV → Clean Excel Converter</h1>
-    <p class="text-gray-600 mb-6">Upload your CSV file to get a cleaned Excel file instantly!</p>
-
-    <div id="dropZone" class="border-2 border-dashed border-blue-300 rounded-lg p-6 cursor-pointer mb-4">
-      <p class="text-gray-500">Drag & drop your CSV here<br>or click to select</p>
-      <input type="file" id="csvFile" accept=".csv" class="hidden">
+<body class="flex justify-center items-center min-h-screen p-4">
+  <div class="card p-8 w-full max-w-2xl">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600 mb-4">
+        <i class="fas fa-file-excel text-2xl"></i>
+      </div>
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">CSV to Excel Converter</h1>
+      <p class="text-gray-600">Upload your CSV file to get a cleaned Excel file instantly!</p>
     </div>
 
-    <button id="convertBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md">🧹 Clean & Convert</button>
+    <!-- File Upload Section -->
+    <div class="mb-8">
+      <div id="dropZone" class="rounded-xl p-8 text-center cursor-pointer">
+        <div class="mx-auto w-16 h-16 mb-4 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+          <i class="fas fa-cloud-upload-alt text-2xl"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-700 mb-2">Drop your CSV file here</h3>
+        <p class="text-gray-500 mb-4">or click to browse files</p>
+        <input type="file" id="csvFile" accept=".csv" class="hidden">
+        <button class="btn-primary text-white font-medium py-2 px-6 rounded-lg inline-flex items-center">
+          <i class="fas fa-folder-open mr-2"></i> Select File
+        </button>
+      </div>
+      <div class="progress-bar mt-4 hidden">
+        <div class="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- File Info -->
+    <div id="fileInfo" class="hidden mb-6">
+      <div class="flex items-center justify-between bg-green-50 p-4 rounded-lg border border-green-200">
+        <div class="flex items-center">
+          <i class="fas fa-file-csv text-green-500 text-xl mr-3"></i>
+          <div>
+            <p class="font-medium text-gray-800" id="fileName">file.csv</p>
+            <p class="text-sm text-gray-600" id="fileStats">0 rows, 0 columns</p>
+          </div>
+        </div>
+        <button id="changeFile" class="text-blue-500 hover:text-blue-700">
+          <i class="fas fa-redo-alt"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Options Section -->
+    <div id="optionsSection" class="hidden mb-8">
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">Cleaning Options</h3>
+      
+      <!-- Column Selection -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-3">
+          <h4 class="font-medium text-gray-700">Select columns to keep:</h4>
+          <div class="flex space-x-2">
+            <button id="selectAll" class="text-xs text-blue-500 hover:text-blue-700 font-medium">Select All</button>
+            <button id="deselectAll" class="text-xs text-gray-500 hover:text-gray-700 font-medium">Deselect All</button>
+          </div>
+        </div>
+        <div id="columnSelector" class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-4 border border-gray-200 rounded-lg bg-gray-50"></div>
+      </div>
+      
+      <!-- Additional Options -->
+      <div class="flex flex-col space-y-4">
+        <label class="checkbox-container text-gray-700">
+          <span class="font-medium">🧹 Remove duplicate rows</span>
+          <input type="checkbox" id="removeDuplicates" checked>
+          <span class="checkmark"></span>
+        </label>
+        
+        <label class="checkbox-container text-gray-700">
+          <span class="font-medium">📊 Auto-adjust column widths</span>
+          <input type="checkbox" id="autoWidth" checked>
+          <span class="checkmark"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Stats & Convert Button -->
+    <div id="statsSection" class="hidden mb-6">
+      <div class="stats-card">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-sm text-gray-600">Original rows</p>
+            <p class="text-xl font-bold text-gray-800" id="originalRows">0</p>
+          </div>
+          <div class="text-center">
+            <p class="text-sm text-gray-600">After cleaning</p>
+            <p class="text-xl font-bold text-green-600" id="cleanedRows">0</p>
+          </div>
+          <div class="text-right">
+            <p class="text-sm text-gray-600">Columns kept</p>
+            <p class="text-xl font-bold text-blue-600" id="columnsKept">0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Convert Button -->
+    <button id="convertBtn" class="btn-primary w-full text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center hidden">
+      <i class="fas fa-magic mr-2"></i> Clean & Convert to Excel
+    </button>
+
+    <!-- Success Message -->
+    <div id="successMessage" class="hidden mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+      <i class="fas fa-check-circle text-green-500 text-xl mb-2"></i>
+      <p class="font-medium text-green-700">File converted successfully!</p>
+      <p class="text-sm text-green-600 mt-1" id="successStats">Your cleaned Excel file is ready to download.</p>
+    </div>
   </div>
 
   <script>
-    const COLUMNS_TO_KEEP = [
-      "Name",
-      "Email",
-      "External Id",
-      "Course",
-      "Estimated Learning Hours",
-      "Completed",
-      "Course Grade"
-    ];
-
+    // DOM Elements
     const dropZone = document.getElementById("dropZone");
     const fileInput = document.getElementById("csvFile");
     const convertBtn = document.getElementById("convertBtn");
+    const columnSelector = document.getElementById("columnSelector");
+    const removeDuplicatesCheckbox = document.getElementById("removeDuplicates");
+    const autoWidthCheckbox = document.getElementById("autoWidth");
+    const fileInfo = document.getElementById("fileInfo");
+    const optionsSection = document.getElementById("optionsSection");
+    const statsSection = document.getElementById("statsSection");
+    const fileName = document.getElementById("fileName");
+    const fileStats = document.getElementById("fileStats");
+    const originalRows = document.getElementById("originalRows");
+    const cleanedRows = document.getElementById("cleanedRows");
+    const columnsKept = document.getElementById("columnsKept");
+    const successMessage = document.getElementById("successMessage");
+    const successStats = document.getElementById("successStats");
+    const changeFile = document.getElementById("changeFile");
+    const selectAllBtn = document.getElementById("selectAll");
+    const deselectAllBtn = document.getElementById("deselectAll");
+    const progressBar = document.querySelector(".progress-bar");
+    const progressFill = document.querySelector(".progress-fill");
+
+    // State variables
     let selectedFile = null;
+    let availableColumns = [];
+    let originalData = [];
+    let originalRowCount = 0;
 
     // Click on dropZone opens file selector
     dropZone.addEventListener("click", () => fileInput.click());
+    
+    // Select file button click
+    dropZone.querySelector("button").addEventListener("click", (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
 
     // Handle file selection
     fileInput.addEventListener("change", e => {
-      selectedFile = e.target.files[0];
-      dropZone.innerHTML = `<p class="text-gray-700 font-medium">${selectedFile.name}</p>`;
+      if (e.target.files.length > 0) {
+        selectedFile = e.target.files[0];
+        handleFileSelection(selectedFile);
+      }
     });
 
-    // Drag & drop
+    // Drag & drop handlers
     dropZone.addEventListener("dragover", e => {
       e.preventDefault();
       dropZone.classList.add("dragover");
     });
+    
     dropZone.addEventListener("dragleave", e => {
       e.preventDefault();
       dropZone.classList.remove("dragover");
     });
+    
     dropZone.addEventListener("drop", e => {
       e.preventDefault();
       dropZone.classList.remove("dragover");
-      selectedFile = e.dataTransfer.files[0];
-      fileInput.files = e.dataTransfer.files;
-      dropZone.innerHTML = `<p class="text-gray-700 font-medium">${selectedFile.name}</p>`;
+      if (e.dataTransfer.files.length > 0) {
+        selectedFile = e.dataTransfer.files[0];
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelection(selectedFile);
+      }
     });
 
-    // Convert & Download
-    convertBtn.addEventListener("click", () => {
-      if (!selectedFile) return alert("Please upload a CSV file first!");
+    // Change file handler
+    changeFile.addEventListener("click", () => {
+      fileInput.click();
+    });
 
+    // Select all columns
+    selectAllBtn.addEventListener("click", () => {
+      columnSelector.querySelectorAll("input").forEach(checkbox => {
+        checkbox.checked = true;
+      });
+      updateStats();
+    });
+
+    // Deselect all columns
+    deselectAllBtn.addEventListener("click", () => {
+      columnSelector.querySelectorAll("input").forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      updateStats();
+    });
+
+    // Handle file selection
+    function handleFileSelection(file) {
+      // Show progress bar
+      progressBar.classList.remove("hidden");
+      progressFill.style.width = "30%";
+      
+      // Update file info
+      fileName.textContent = file.name;
+      fileInfo.classList.remove("hidden");
+      
+      // Parse header and first few rows to get stats
+      Papa.parse(file, {
+        preview: 10, // Read first 10 rows for stats
+        header: true,
+        complete: function(results) {
+          progressFill.style.width = "70%";
+          
+          availableColumns = results.meta.fields || [];
+          originalRowCount = results.data.length;
+          originalData = results.data;
+          
+          // Update file stats
+          fileStats.textContent = `${originalRowCount} rows, ${availableColumns.length} columns`;
+          originalRows.textContent = originalRowCount;
+          
+          // Render column selector
+          renderColumnSelector(availableColumns);
+          
+          // Show options and convert button
+          optionsSection.classList.remove("hidden");
+          convertBtn.classList.remove("hidden");
+          statsSection.classList.remove("hidden");
+          
+          // Hide success message if shown
+          successMessage.classList.add("hidden");
+          
+          // Complete progress
+          setTimeout(() => {
+            progressFill.style.width = "100%";
+            setTimeout(() => {
+              progressBar.classList.add("hidden");
+            }, 500);
+          }, 300);
+        },
+        error: function(error) {
+          alert("Error parsing CSV file: " + error);
+          progressBar.classList.add("hidden");
+        }
+      });
+    }
+
+    // Render column selector with checkboxes
+    function renderColumnSelector(columns) {
+      columnSelector.innerHTML = "";
+      columns.forEach(col => {
+        const id = `col_${col.replace(/\s+/g, "_")}`;
+        const columnItem = document.createElement("div");
+        columnItem.className = "column-item";
+        columnItem.innerHTML = `
+          <label class="checkbox-container text-gray-700">
+            <span class="truncate">${col}</span>
+            <input type="checkbox" id="${id}" value="${col}" checked>
+            <span class="checkmark"></span>
+          </label>
+        `;
+        columnSelector.appendChild(columnItem);
+        
+        // Add event listener to update stats when column selection changes
+        columnItem.querySelector("input").addEventListener("change", updateStats);
+      });
+      
+      updateStats();
+    }
+
+    // Update stats based on selected columns
+    function updateStats() {
+      const selectedColumns = Array.from(columnSelector.querySelectorAll("input:checked"))
+        .map(cb => cb.value);
+      
+      columnsKept.textContent = selectedColumns.length;
+      
+      // Estimate cleaned rows (this is just an estimate until actual processing)
+      if (removeDuplicatesCheckbox.checked) {
+        // For demo purposes, we'll estimate 10% duplicates
+        const estimatedCleaned = Math.floor(originalRowCount * 0.9);
+        cleanedRows.textContent = estimatedCleaned;
+      } else {
+        cleanedRows.textContent = originalRowCount;
+      }
+    }
+
+    // Convert and clean data
+    convertBtn.addEventListener("click", () => {
+      if (!selectedFile) return;
+      
+      const selectedColumns = Array.from(columnSelector.querySelectorAll("input:checked"))
+        .map(cb => cb.value);
+
+      if (selectedColumns.length === 0) {
+        alert("Please select at least one column!");
+        return;
+      }
+
+      // Show processing state
+      convertBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+      convertBtn.disabled = true;
+      
+      // Parse the entire file
       Papa.parse(selectedFile, {
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
           const data = results.data;
+          const originalLength = data.length;
 
-          // Filter only required columns
+          // Filter only selected columns
           const filtered = data.map(row => {
             const newRow = {};
-            COLUMNS_TO_KEEP.forEach(col => {
+            selectedColumns.forEach(col => {
               if (row[col] !== undefined) newRow[col] = row[col];
             });
             return newRow;
           });
 
-          // Convert to Excel sheet
-          const worksheet = XLSX.utils.json_to_sheet(filtered, {header: COLUMNS_TO_KEEP});
+          let finalData = filtered;
 
-          // Styling cells
-          const range = XLSX.utils.decode_range(worksheet['!ref']);
-          for (let C = range.s.c; C <= range.e.c; ++C) {
-            for (let R = range.s.r; R <= range.e.r; ++R) {
-              const cell_address = {c:C, r:R};
-              const cell_ref = XLSX.utils.encode_cell(cell_address);
-              if(!worksheet[cell_ref]) continue;
-
-              if(R === 0) { // header bold & center
-                worksheet[cell_ref].s = {
-                  font: { bold: true },
-                  alignment: { horizontal: "center", vertical: "center" }
-                };
-              } else { // center rows
-                worksheet[cell_ref].s = {
-                  alignment: { horizontal: "center", vertical: "center" }
-                };
-              }
-            }
+          // Remove duplicates if enabled
+          if (removeDuplicatesCheckbox.checked) {
+            const seen = new Set();
+            finalData = filtered.filter(row => {
+              const key = JSON.stringify(row);
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
           }
 
-          // Auto column width
-          const cols = COLUMNS_TO_KEEP.map(key => ({
-            wch: Math.max(
-              key.length + 2,
-              ...filtered.map(r => (r[key] ? r[key].toString().length : 0) + 2)
-            )
-          }));
-          worksheet['!cols'] = cols;
+          // Convert to Excel
+          const worksheet = XLSX.utils.json_to_sheet(finalData, {header: selectedColumns});
+
+          // Auto column width if enabled
+          if (autoWidthCheckbox.checked) {
+            const cols = selectedColumns.map(key => ({
+              wch: Math.max(
+                key.length + 2,
+                ...finalData.map(r => (r[key] ? r[key].toString().length : 0) + 2)
+              )
+            }));
+            worksheet['!cols'] = cols;
+          }
 
           const workbook = XLSX.utils.book_new();
           XLSX.utils.book_append_sheet(workbook, worksheet, "Cleaned Data");
 
-          // Download
-          const filename = selectedFile.name.replace(/\.csv$/i, '') + '.xlsx';
+          const filename = selectedFile.name.replace(/\.csv$/i, '') + '_cleaned.xlsx';
           XLSX.writeFile(workbook, filename, {bookSST:true});
+
+          // Update stats with actual numbers
+          cleanedRows.textContent = finalData.length;
+          
+          // Show success message
+          successStats.textContent = `Converted ${originalLength} rows to ${finalData.length} unique rows with ${selectedColumns.length} columns.`;
+          successMessage.classList.remove("hidden");
+          successMessage.classList.add("success-animation");
+          
+          // Reset button
+          convertBtn.innerHTML = '<i class="fas fa-magic mr-2"></i> Clean & Convert to Excel';
+          convertBtn.disabled = false;
+          
+          // Scroll to success message
+          successMessage.scrollIntoView({ behavior: 'smooth' });
+        },
+        error: function(error) {
+          alert("Error processing CSV file: " + error);
+          convertBtn.innerHTML = '<i class="fas fa-magic mr-2"></i> Clean & Convert to Excel';
+          convertBtn.disabled = false;
         }
       });
     });
-  </script>
 
+    // Initialize event listeners for options to update stats
+    removeDuplicatesCheckbox.addEventListener("change", updateStats);
+    autoWidthCheckbox.addEventListener("change", updateStats);
+  </script>
 </body>
 </html>
